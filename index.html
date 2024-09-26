@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지뢰찾기 | 10517정은수</title>
+    <style>
+        @font-face {
+            font-family: 'DungGeunMo';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        * {
+            font-family: 'DungGeunMo', monospace;
+        }
+
+        td {
+            display: flexbox;
+            text-align: center;
+            width: 1.5rem;
+            height: 1.5rem;
+            background-color: green;
+        }
+        
+        td.clicked {
+            background-color: lime;
+        }
+
+        td.mine {
+            background-color: red;
+        }
+
+        #share {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>지뢰 찾기</h1>
+    <button onclick="document.querySelector('#finder').showModal();">시작하기</button>
+    <dialog id="finder">
+        <p>상태 - <span id="status">로드중...</span></p>
+        <p>흐른 시간 - <span id="timer">로드중...</span></p>
+        <table id="minefinder"></table>
+        <br/>
+        <button id="share" onclick="navigator.clipboard.writeText(share(time, clickedMine)); alert('결과가 복사되었습니다!')">결과 복사하기</button>
+    </dialog>
+    <script lang="javascript">
+        /**
+         * JSDocs가 왜 안되는지 모르겠습니다.
+         * 아마 script 태그 안에 있어서 그런것 같습니다.
+         * lang을 js, javascript로 설정해도 안됩니다.
+        */
+        debugger; // 디버거 오픈 막음
+
+        // 값 정의
+        const SIZE = 8;
+        const MAX_MINE = 15;
+        const FINDER = document.querySelector("#minefinder");
+        const TIMER = document.querySelector("#timer");
+        const STATUS_VIEWER = document.querySelector("#status");
+        const SHAREIT = document.querySelector("#share");
+        let mines = [];
+        let opened = [];
+        let clickedMine;
+        let time; // 단위: 10ms
+        let timeKeeper;
+        let status = 0; // 0= 준비, 1= 시작, 2= 승리, -1= 패배
+        let total;
+
+        /**
+         * 지뢰찾기를 초기화 합니다.
+        */
+        function init() {
+            if(timeKeeper) clearInterval(timeKeeper);
+            time = 0;
+            opened = [];
+
+            FINDER.innerHTML = '';
+            let left = MAX_MINE;
+            for (let i=0; i<SIZE; i++) {
+                let a = document.createElement("tr");
+                for(let j = 0; j<SIZE; j++) {
+                    let b= document.createElement("td");
+                    // 이게 지뢰가 될것인지 결정
+                    b.setAttribute("mine", left>0 && isGonnaBeMine() ? "true" : "false");
+                    if(left>0 && b.getAttribute("mine") === "true") {
+                        left--;
+                        mines.push({x: j, y: i});
+                    }
+                    b.onclick = (e) => onClick(e.target);
+
+                    a.appendChild(b);
+                }
+                FINDER.append(a);
+            }
+
+            updateStatus(1);
+            timeKeeper = setInterval(() => {
+                updateTime(time++);
+            }, 10);
+
+            total = SIZE*SIZE-(MAX_MINE-left);
+
+            // 만약에 지뢰가 설치되지 않았을떄 재귀
+            if (left == MAX_MINE) init();
+        }
+
+        /**
+         * 현재 상태를 업데이트 해주는 함수
+         * 
+         * @param {Number} status
+        */
+        async function updateStatus(newStatus) {
+            status = newStatus;
+            STATUS_VIEWER.innerText = newStatus === 2 ? "승리" : (newStatus === -1 ? "패배" : "진행중");
+
+            if(newStatus !== 1) {
+                clearInterval(timeKeeper);
+                timeKeeper = undefined;
+                
+                SHAREIT.style.display = 'block';
+                console.log(share(time, clickedMine));
+            }
+        }
+
+        /**
+         * 흐른시간을 업데이트해주는 함수
+         * 
+         * @param {Number} 시간 (10ms)
+        */
+        async function updateTime(time) {
+            TIMER.innerText = formatTime(time);
+        }
+
+        /**
+         * 시간을 mm:ss.ms단위로 포메팅 해주는 함수
+         * 
+         * @param {Number} 시간 (10ms)
+        */
+        function formatTime(time) {
+            const sec = parseInt(time / 100);
+            const min = parseInt(sec/60);
+            return zero(min)+":"+zero(sec%60)+"."+zero(time%100);
+        }
+
+        /**
+         * 아무래도 js도 %2d 같은게 필요하다고 생각합니다.
+         * 
+         * @param {Number} 포멧팅할 값
+        */
+        function zero(n) {
+            return String(n).length === 1 ? "0"+String(n) : n;
+        }
+
+        /**
+         * 플레이시간 절약을 위한 FloodFill 도입
+         * 
+         * @param {HTMLElement} target 클릭한 대상
+         */
+        function onClick(target) {
+            if(status !== 1) return;
+
+            let y = Array.prototype.slice.call(FINDER.children).indexOf(target.parentElement);
+            let x = Array.prototype.slice.call(target.parentElement.children).indexOf(target);
+            let isIt = isMine(x, y);
+
+            opened.push({x: x, y: y});
+            target.classList = isIt?"mine":"clicked";
+            if(!isIt) {
+                target.innerText = Math.ceil(getDistanceFromNearestMine(x, y).distance);
+                if(--total === 0) updateStatus(2);
+            }else {clickedMine = {x: x, y: y}; updateStatus(-1);}
+
+            console.log(x +"/" +y);
+        }
+
+        /**
+         * 지뢰인지 확인
+         * 
+         * @param {Number} x 시작할 좌표 X
+         * @param {Number} y 시작할 좌표 y
+         * 
+         * @returns {Boolean} 지뢰인지 여부
+        */
+        function isMine(x, y) {
+            return FINDER.children[y].children[x].getAttribute("mine")==="true";
+        }
+
+        /**
+         * 근처에 있는지 확인
+         * 
+         * @param {Number} x 시작할 좌표 X
+         * @param {Number} y 시작할 좌표 y
+         * 
+         * @returns {(Object|undefined)} 가장 가까운 지뢰의 x, y와 거리를 담은 객체
+         */
+        function getDistanceFromNearestMine(x, y) {
+            let nearest, nearestDistance;
+            for(let mine of mines) {
+                let d = getDistance(mine.x, mine.y, x, y);
+
+                if(!nearest || !nearestDistance || nearestDistance > d) {
+                    nearest = mine;
+                    nearestDistance = d;
+                }
+            }
+
+            if (!nearest || !nearestDistance) return undefined;
+
+            return {
+                x: nearest.x,
+                y: nearest.y,
+                distance: nearestDistance
+            };
+        }
+
+        /**
+         * 좌표간의 거리
+         * 
+         * @param {Number} x 좌표1 X
+         * @param {Number} y 좌표1 y
+         * @param {Number} tx 좌표2 X
+         * @param {Number} ty 좌표2 y
+         * 
+         * @returns {Number} 좌표간의 거리
+         */
+        function getDistance(x, y, tx, ty) {
+            return Math.sqrt(Math.abs(Math.pow(tx-x, 2) + Math.pow(ty-y, 2))); // 러스트가 그리워지는 리턴
+        }
+
+        /**
+         * 지뢰를 심을지 결정
+         * 
+         * @returns {Boolean} 지뢰를 심을지에 대한 여부
+         * @ignore
+        */
+        function isGonnaBeMine() {
+            return Math.random() < (MAX_MINE/SIZE)*.1;
+        }
+
+        /**
+         * 플레이어가 열었었는지 확인
+         * 
+         * @param {Number} x X좌표
+         * @param {Number} y Y좌표
+         * 
+         * @returns {Boolean} 클릭했었는지
+         */
+        function isOpened(x, y) {
+            for (let a of opened) {
+                if(a.x==x && a.y==y) return true;
+            }
+            return false;
+        }
+
+        /**
+         * 공유하기
+         * 
+         * @params {Object} targetMine 클릭한 지뢰
+         * @returns {String} 공유할 문자열
+        */
+        function share(time, targetMine) {
+            console.log(targetMine);
+            let str = `${targetMine?"Failed":"Completed"} @ ${formatTime(time)}\n\n`;
+            for(let i = 0; i<SIZE; i++) {
+                for(let j = 0; j<SIZE; j++) {
+                    str += isMine(j, i) ? (targetMine && targetMine.x==j && targetMine.y==i ? '💥' : '💣') : isOpened(j, i) ? '🟩' : '⬜️';
+                    str += j<SIZE-1 ? " " : "";
+                }
+                str += '\n';
+            }
+            return str;
+        }
+
+        init();
+    </script>
+</body>
+</html>
