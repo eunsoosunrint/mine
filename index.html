@@ -267,7 +267,7 @@
             let str = `${targetMine?"Failed":"Completed"} @ ${formatTime(time)}\n\n`;
             for(let i = 0; i<SIZE; i++) {
                 for(let j = 0; j<SIZE; j++) {
-                    str += isMine(j, i) ? (targetMine && targetMine.x==j && targetMine.y==i ? '💥' : '💣') : isOpened(j, i) ? '🟩' : '⬜️';
+                    str += isMine(j, i) ? (targetMine && targetMine.x==j && targetMine.y==i ? '💥' : '💣') : isOpened(j, i) ? '🟩' : '⬛️';
                     str += j<SIZE-1 ? " " : "";
                 }
                 str += '\n';
