@@ -81,6 +81,7 @@
 
             FINDER.innerHTML = '';
             let left = MAX_MINE;
+            let installed = 0;
             for (let i=0; i<SIZE; i++) {
                 let a = document.createElement("tr");
                 for(let j = 0; j<SIZE; j++) {
@@ -89,6 +90,7 @@
                     b.setAttribute("mine", left>0 && isGonnaBeMine() ? "true" : "false");
                     if(left>0 && b.getAttribute("mine") === "true") {
                         left--;
+                        installed++;
                         mines.push({x: j, y: i});
                     }
                     b.onclick = (e) => onClick(e.target);
@@ -98,15 +100,15 @@
                 FINDER.append(a);
             }
 
+            total = SIZE*SIZE-installed;
+
             updateStatus(1);
             timeKeeper = setInterval(() => {
                 updateTime(time++);
             }, 10);
 
-            total = SIZE*SIZE-(MAX_MINE-left);
-
             // 만약에 지뢰가 설치되지 않았을떄 재귀
-            if (left == MAX_MINE || MAX_MINE-left < MIN_MINE) init();
+            if (left == MAX_MINE || installed < MIN_MINE) init();
         }
 
         /**
