@@ -168,6 +168,7 @@
 
             let y = Array.prototype.slice.call(FINDER.children).indexOf(target.parentElement);
             let x = Array.prototype.slice.call(target.parentElement.children).indexOf(target);
+            if(isOpened(x, y)) return;
             let isIt = isMine(x, y);
 
             opened.push({x: x, y: y});
