@@ -58,6 +58,7 @@
         // 값 정의
         const SIZE = 8;
         const MAX_MINE = 15;
+        const MIN_MINE = 6;
         const FINDER = document.querySelector("#minefinder");
         const TIMER = document.querySelector("#timer");
         const STATUS_VIEWER = document.querySelector("#status");
@@ -105,7 +106,7 @@
             total = SIZE*SIZE-(MAX_MINE-left);
 
             // 만약에 지뢰가 설치되지 않았을떄 재귀
-            if (left == MAX_MINE) init();
+            if (left == MAX_MINE || MAX_MINE-left < MIN_MINE) init();
         }
 
         /**
@@ -272,7 +273,7 @@
                 }
                 str += '\n';
             }
-            str+='\n v0.0.1';
+            str+='\n v0.0.2';
             return str;
         }
 
