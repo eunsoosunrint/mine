@@ -53,7 +53,7 @@
          * 아마 script 태그 안에 있어서 그런것 같습니다.
          * lang을 js, javascript로 설정해도 안됩니다.
         */
-        debugger; // 디버거 오픈 막음
+        debugger;debugger;debugger;debugger;debugger;debugger; // 디버거 오픈 막음
 
         // 값 정의
         const SIZE = 8;
@@ -272,8 +272,23 @@
                 }
                 str += '\n';
             }
+            str+='\n v0.0.1';
             return str;
         }
+
+        // 부정행위 방지
+        window.addEventListener('keydown', function(event) {
+            event.preventDefault();
+            if ((event.keyCode === 123) || event.ctrlKey && event.shiftKey && event.keyCode === 73) {
+                alert("부정행위 감지됨.");
+                window.close();
+            }
+	    });
+
+        // 우클릭 방지
+        window.addEventListener('contextmenu', function(event) {
+            event.preventDefault();
+        });
 
         init();
     </script>
