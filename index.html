@@ -39,7 +39,7 @@
 </head>
 <body>
     <h1>지뢰 찾기</h1>
-    <button onclick="document.querySelector('#finder').showModal();">시작하기</button>
+    <button onclick="document.querySelector('#finder').showModal(); init();">시작하기</button>
     <dialog id="finder">
         <p>상태 - <span id="status">로드중...</span></p>
         <p>흐른 시간 - <span id="timer">로드중...</span></p>
@@ -293,8 +293,6 @@
         window.addEventListener('contextmenu', function(event) {
             event.preventDefault();
         });
-
-        init();
     </script>
 </body>
 </html>
